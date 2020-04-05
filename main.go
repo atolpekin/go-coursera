@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,34 +22,30 @@ func main() {
 	}
 }
 
-func dirTree(output io.Writer, currDir string, printFiles bool) error {
-	recursionPrintService("", output, currDir, printFiles)
+func dirTree(out io.Writer, path string, printFiles bool) error {
+	recursivePrint("", out, path, printFiles)
 	return nil
 }
 
-func recursionPrintService(prependingString string, output io.Writer, currDir string, printFiles bool) {
-	fileObj, err := os.Open(currDir)
+func recursivePrint(indent string, output io.Writer, currDir string, printFiles bool) {
+	fileObj, _ := os.Open(currDir)
 	defer fileObj.Close()
-	if err != nil {
-		log.Fatalf("Could not open %s: %s", currDir, err.Error())
-	}
+
 	fileName := fileObj.Name()
-	files, err := ioutil.ReadDir(fileName)
-	if err != nil {
-		log.Fatalf("Could not read dir names in %s: %s", currDir, err.Error())
-	}
+	files, _ := ioutil.ReadDir(fileName)
+
 	var filesMap map[string]os.FileInfo = map[string]os.FileInfo{}
-	var unSortedFilesNameArr []string = []string{}
+	var unSortedFiles []string = []string{}
 	for _, file := range files {
-		unSortedFilesNameArr = append(unSortedFilesNameArr, file.Name())
+		unSortedFiles = append(unSortedFiles, file.Name())
 		filesMap[file.Name()] = file
 	}
-	sort.Strings(unSortedFilesNameArr)
-	var sortedFilesArr []os.FileInfo = []os.FileInfo{}
-	for _, stringName := range unSortedFilesNameArr {
-		sortedFilesArr = append(sortedFilesArr, filesMap[stringName])
+	sort.Strings(unSortedFiles)
+	var sortedFiles []os.FileInfo = []os.FileInfo{}
+	for _, stringName := range unSortedFiles {
+		sortedFiles = append(sortedFiles, filesMap[stringName])
 	}
-	files = sortedFilesArr
+	files = sortedFiles
 	var newFileList []os.FileInfo = []os.FileInfo{}
 	var length int
 	if !printFiles {
@@ -66,26 +61,26 @@ func recursionPrintService(prependingString string, output io.Writer, currDir st
 		if file.IsDir() {
 			var stringPrepender string
 			if length > i+1 {
-				fmt.Fprintf(output, prependingString+"├───"+"%s\n", file.Name())
-				stringPrepender = prependingString + "│\t"
+				fmt.Fprintf(output, indent+"├───"+"%s\n", file.Name())
+				stringPrepender = indent + "│\t"
 			} else {
-				fmt.Fprintf(output, prependingString+"└───"+"%s\n", file.Name())
-				stringPrepender = prependingString + "\t"
+				fmt.Fprintf(output, indent+"└───"+"%s\n", file.Name())
+				stringPrepender = indent + "\t"
 			}
 			newDir := filepath.Join(currDir, file.Name())
-			recursionPrintService(stringPrepender, output, newDir, printFiles)
+			recursivePrint(stringPrepender, output, newDir, printFiles)
 		} else if printFiles {
 			if file.Size() > 0 {
 				if length > i+1 {
-					fmt.Fprintf(output, prependingString+"├───%s (%vb)\n", file.Name(), file.Size())
+					fmt.Fprintf(output, indent+"├───%s (%vb)\n", file.Name(), file.Size())
 				} else {
-					fmt.Fprintf(output, prependingString+"└───%s (%vb)\n", file.Name(), file.Size())
+					fmt.Fprintf(output, indent+"└───%s (%vb)\n", file.Name(), file.Size())
 				}
 			} else {
 				if length > i+1 {
-					fmt.Fprintf(output, prependingString+"├───%s (empty)\n", file.Name())
+					fmt.Fprintf(output, indent+"├───%s (empty)\n", file.Name())
 				} else {
-					fmt.Fprintf(output, prependingString+"└───%s (empty)\n", file.Name())
+					fmt.Fprintf(output, indent+"└───%s (empty)\n", file.Name())
 				}
 			}
 		}
